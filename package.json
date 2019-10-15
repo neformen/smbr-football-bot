@@ -4,7 +4,9 @@
   "description": "Poll bot for count players",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node index.js",
+    "dev": "nodemon index.js"
   },
   "repository": {
     "type": "git",
@@ -20,5 +22,11 @@
   "bugs": {
     "url": "https://github.com/neformen/smbr-football-bot/issues"
   },
-  "homepage": "https://github.com/neformen/smbr-football-bot#readme"
+  "homepage": "https://github.com/neformen/smbr-football-bot#readme",
+  "dependencies": {
+    "node-telegram-bot-api": "^0.30.0"
+  },
+  "devDependencies": {
+    "nodemon": "^1.19.3"
+  }
 }
