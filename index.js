@@ -3,11 +3,12 @@ const TelegramBot = require('node-telegram-bot-api');
 const log = {};
 
 const inlineKeybordReply = {
+    parse_mode: 'Markdown',
     reply_markup: {
         inline_keyboard: [
             [
                 { text: 'Плюс, я з рєбятами', callback_data: 'go' },
-                { text: 'Мінус, буду спати', callback_data: 'notGo' }
+                { text: 'Мінус, буду спати', callback_data: 'skip' }
             ]
         ]
     }
@@ -19,59 +20,52 @@ const token = '872284536:AAG6MWWdTrcr4KMSi2_UskYxwB8SCdeKjcw';
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, { polling: true });
 
-// Matches "/echo [whatever]"
-bot.onText(/\/echo (.+)/, (msg, match) => {
-    // 'msg' is the received Message from Telegram
-    // 'match' is the result of executing the regexp above on the text content
-    // of the message
 
-    const chatId = msg.chat.id;
-    const resp = match[1]; // the captured "whatever"
-
-    // send back the matched "whatever" to the chat
-    bot.sendMessage(chatId, resp);
-});
-
-bot.onText(/\/game/, (msg) => {
-    console.log(JSON.stringify(msg));
-    log[msg.message_id + 1] = {
-        go: [],
-        notGo: []
-    };
-
-    bot.sendMessage(msg.chat.id, msg.text, inlineKeybordReply);
+bot.onText(/\/game (.+)/, (msg, match) => {
+    const messageBody = match[1];
+    bot.sendMessage(msg.chat.id, `*${messageBody}*`, inlineKeybordReply);
 });
 
 bot.on('callback_query', (callbackQuery) => {
-
-    const payload = callbackQuery.data;
+    const decision = callbackQuery.data;
     const msg = callbackQuery.message;
+    const msgId = '' + msg.message_id + msg.chat.id;
+    const currPlayer = callbackQuery.from;
     const opts = {
         chat_id: msg.chat.id,
-        message_id: msg.message_id,
+        message_id: msgId,
         ...inlineKeybordReply
     };
-    log[msg.message_id][payload].push(callbackQuery.from);
-    const text = generateMessage(log[msg.message_id]);
-
-
+    if ( log[msgId] === undefined ) {
+        log[msgId] = {
+            go: [],
+            skip: [],
+            title: msg.text
+        };
+    }
+    let { go, skip } = log[msgId];
+    go = go.filter(player => player.id !== currPlayer.id);
+    skip = skip.filter(player => player.id !== currPlayer.id);
+    Object.assign(log[msgId], { go, skip });
+    log[msgId][decision].push(currPlayer);
+    const text = generateMessage(log[msgId]);
 
     bot.editMessageText(text, opts);
 });
 
-function generateMessage({ go, notGo }) {
-    let resultMessage = '';
-    if (go.legth !== 0) {
+function generateMessage({ go, skip, title }) {
+    let resultMessage = `${title}\n\n`;
+    if (go.length !== 0) {
         resultMessage += 'Йдуть \n';
-        go.forEach(({ first_name, last_name }) => {
-            resultMessage += `${first_name} ${last_name} \n`
+        go.forEach(({ first_name, last_name, id }) => {
+            resultMessage += `[${first_name} ${last_name}](tg://user?id=${id})\n`;
         });
     }
 
-    if (notGo.legth !== 0) {
+    if (skip.length !== 0) {
         resultMessage += 'Пропускають \n';
-        notGo.forEach(({ first_name, last_name }) => {
-            resultMessage += `${first_name} ${last_name} \n`
+        skip.forEach(({ first_name, last_name, id }) => {
+            resultMessage += `[${first_name} ${last_name}](tg://user?id=${id})\n`;
         });
     }
 
