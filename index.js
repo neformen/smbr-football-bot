@@ -26,7 +26,7 @@ const options = {
       // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
     }
   };
-  const url = 'https://smbr-bot.herokuapp.com:443';
+  const url = process.env.APP_URL || 'https://smbr-bot.herokuapp.com:443';
 // Create a bot that uses 'polling' to fetch new updates
 const bot = new TelegramBot(token, options);
 
