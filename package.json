@@ -1,0 +1,24 @@
+{
+  "name": "smbr-football-bot",
+  "version": "1.0.0",
+  "description": "Poll bot for count players",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/neformen/smbr-football-bot.git"
+  },
+  "keywords": [
+    "telegram",
+    "poll",
+    "bot"
+  ],
+  "author": "Vasyl Motsyak",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/neformen/smbr-football-bot/issues"
+  },
+  "homepage": "https://github.com/neformen/smbr-football-bot#readme"
+}
