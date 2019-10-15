@@ -16,9 +16,21 @@ const inlineKeybordReply = {
 
 // replace the value below with the Telegram token you receive from @BotFather
 const token = '872284536:AAG6MWWdTrcr4KMSi2_UskYxwB8SCdeKjcw';
-
+const options = {
+    webHook: {
+      // Port to which you should bind is assigned to $PORT variable
+      // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
+      port: process.env.PORT
+      // you do NOT need to set up certificates since Heroku provides
+      // the SSL certs already (https://<app-name>.herokuapp.com)
+      // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
+    }
+  };
+  const url = 'https://smbr-bot.herokuapp.com:443';
 // Create a bot that uses 'polling' to fetch new updates
-const bot = new TelegramBot(token, { polling: true });
+const bot = new TelegramBot(token, options);
+
+bot.setWebHook(`${url}/bot${TOKEN}`);
 
 
 bot.onText(/\/game (.+)/, (msg, match) => {
