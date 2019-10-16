@@ -1,8 +1,11 @@
 import * as TelegramBot from "node-telegram-bot-api";
+import * as mongoose from 'mongoose';
 import { ILogGame, ILog } from "./interfaces/interfaces";
+import HistoryItems from './models/historyItem';
 
-const log: ILog = {};
 const port: number = Number(process.env.PORT) || 3000;
+const devDBUrl = 'mongodb://admin:admin9416@ds335678.mlab.com:35678/heroku_4xwvwjlf';
+let log: ILog = {};
 
 const inlineReplyOpts = {
     inline_keyboard: [
@@ -11,7 +14,13 @@ const inlineReplyOpts = {
             { text: 'Мінус, буду спати', callback_data: 'skip' }
         ]
     ]
-}
+};
+
+mongoose.connect(devDBUrl, {
+    useNewUrlParser: true,
+    useUnifiedTopology: true,
+    useFindAndModify: false
+});
 
 const messageOpts: TelegramBot.SendMessageOptions = {
     parse_mode: 'Markdown',
@@ -41,14 +50,21 @@ if (process.env.PROD) {
     bot.setWebHook(`${url}/bot${token}`);
 }
 
+HistoryItems.find({}, (err, historyItems) => {
+    historyItems.forEach((historyItem) => {
+        console.log(JSON.stringify(historyItem));
+    });
+});
 
-bot.onText(/\/game (.+)/, (msg, match) => {
+
+bot.onText(/\/game (.+)/, function (msg, match) {
     const messageBody = match[1];
     bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
 });
 
-bot.on('callback_query', (callbackQuery) => {
+bot.on('callback_query', function (callbackQuery) {
     const decision: string = callbackQuery.data;
+    let newItem: boolean = false;
     const msg: TelegramBot.Message = callbackQuery.message;
     const chatId: number = msg.chat.id;
     const msgId: number = msg.message_id
@@ -59,14 +75,21 @@ bot.on('callback_query', (callbackQuery) => {
         reply_markup: inlineReplyOpts,
         parse_mode: 'Markdown'
     };
-    if (log[msgId] === undefined) {
-        log[msgId] = {
+
+    if (log[chatId] === undefined) {
+        log[chatId] = {};
+        newItem = true;
+    }
+
+    if (log[chatId][msgId] === undefined) {
+        log[chatId][msgId] = {
             go: [],
             skip: [],
             text: msg.text
         };
+        newItem = true;
     }
-    let { go, skip } = log[msgId];
+    let { go, skip } = log[chatId][msgId];
     const isGo = go.find((player) => player.id === currPlayer.id);
     const isSkip = skip.find((player) => player.id === currPlayer.id);
 
@@ -76,9 +99,25 @@ bot.on('callback_query', (callbackQuery) => {
 
     go = go.filter(player => player.id !== currPlayer.id);
     skip = skip.filter(player => player.id !== currPlayer.id);
-    Object.assign(log[msgId], { go, skip });
-    log[msgId][decision].push(currPlayer);
-    const text = generateMessage(log[msgId]);
+    Object.assign(log[chatId][msgId], { go, skip });
+    log[chatId][msgId][decision].push(currPlayer);
+    const text = generateMessage(log[chatId][msgId]);
+    const id = '' + msgId + chatId;
+    let { go: nGo, skip: nSkip } = log[chatId][msgId];
+    if (newItem) {
+        const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text, chatId, msgId, id });
+        newRecord.save((err) => {
+            console.log(err);
+            console.log('save')
+        });
+    } else {
+        HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip, text }, (err, item) => {
+            console.log(err);
+            console.log(JSON.stringify(item));
+        });
+    }
+
+
 
     bot.editMessageText(text, opts);
 });

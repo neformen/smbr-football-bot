@@ -7,5 +7,9 @@ export interface ILogGame {
 }
 
 export interface ILog {
-    [key: string]: ILogGame;
+    [key: string]: IlogChat;
+}
+
+export interface IlogChat {
+    [key: string]: ILogGame
 }
