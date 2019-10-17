@@ -1,10 +1,16 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import * as mongoose from 'mongoose';
-import { ILogGame, ILog, IlogDataBase, IlogChat } from "./interfaces/interfaces";
+import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
 import HistoryItems from './models/historyItem';
+import { config } from "dotenv";
 
-const port: number = Number(process.env.PORT) || 3000;
-const devDBUrl = 'mongodb://admin:admin9416@ds111425.mlab.com:11425/heroku_n6xhfcr2';
+if (!process.env.PROD) {
+    config();
+}
+
+const port: number = Number(process.env.PORT);
+const TOKEN = process.env.BOT_TOKEN;
+const devDBUrl = process.env.DB_URL;
 
 const log: ILog = {};
 
@@ -30,25 +36,18 @@ const messageOpts: TelegramBot.SendMessageOptions = {
 
 const prodOptions: TelegramBot.ConstructorOptions = {
     webHook: {
-        // Port to which you should bind is assigned to $PORT variable
-        // See: https://devcenter.heroku.com/articles/dynos#local-environment-variables
         port
-        // you do NOT need to set up certificates since Heroku provides
-        // the SSL certs already (https://<app-name>.herokuapp.com)
-        // Also no need to pass IP because on Heroku you need to bind to 0.0.0.0
     }
 };
 
 const devOptions: TelegramBot.ConstructorOptions = {
     polling: true
 };
-
-const token = '872284536:AAG6MWWdTrcr4KMSi2_UskYxwB8SCdeKjcw';
-const url = process.env.APP_URL || 'https://smbr-bot.herokuapp.com:443';
-const bot = new TelegramBot(token, process.env.PROD ? prodOptions : devOptions);
+const url = process.env.APP_URL;
+const bot = new TelegramBot(TOKEN, process.env.PROD ? prodOptions : devOptions);
 
 if (process.env.PROD) {
-    bot.setWebHook(`${url}/bot${token}`);
+    bot.setWebHook(`${url}/bot${TOKEN}`);
 }
 
 HistoryItems.find({}, (err, historyItems) => {
@@ -57,7 +56,7 @@ HistoryItems.find({}, (err, historyItems) => {
         log[chatId] = {};
         log[chatId][msgId] = { go, skip, text };
 
-        console.log(historyItem.toObject())
+        console.log(historyItem.toObject());
     });
 });
 
