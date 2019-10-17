@@ -4,7 +4,8 @@ import { ILogGame, ILog } from "./interfaces/interfaces";
 import HistoryItems from './models/historyItem';
 
 const port: number = Number(process.env.PORT) || 3000;
-const devDBUrl = 'mongodb://admin:admin9416@ds335678.mlab.com:35678/heroku_4xwvwjlf';
+const devDBUrl = 'mongodb://admin:admin9416@ds111425.mlab.com:11425/heroku_n6xhfcr2';
+
 let log: ILog = {};
 
 const inlineReplyOpts = {
