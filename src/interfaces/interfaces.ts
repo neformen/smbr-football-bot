@@ -13,3 +13,12 @@ export interface ILog {
 export interface IlogChat {
     [key: string]: ILogGame
 }
+
+export interface IlogDataBase {
+    go: User[];
+    skip: User[];
+    text: string;
+    chatId: number;
+    msgId: number;
+    id: string;
+}

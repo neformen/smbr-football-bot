@@ -1,12 +1,12 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import * as mongoose from 'mongoose';
-import { ILogGame, ILog } from "./interfaces/interfaces";
+import { ILogGame, ILog, IlogDataBase, IlogChat } from "./interfaces/interfaces";
 import HistoryItems from './models/historyItem';
 
 const port: number = Number(process.env.PORT) || 3000;
 const devDBUrl = 'mongodb://admin:admin9416@ds111425.mlab.com:11425/heroku_n6xhfcr2';
 
-let log: ILog = {};
+const log: ILog = {};
 
 const inlineReplyOpts = {
     inline_keyboard: [
@@ -53,7 +53,11 @@ if (process.env.PROD) {
 
 HistoryItems.find({}, (err, historyItems) => {
     historyItems.forEach((historyItem) => {
-        console.log(JSON.stringify(historyItem));
+        const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
+        log[chatId] = {};
+        log[chatId][msgId] = { go, skip, text };
+
+        console.log(historyItem.toObject())
     });
 });
 
@@ -90,7 +94,7 @@ bot.on('callback_query', function (callbackQuery) {
         };
         newItem = true;
     }
-    let { go, skip } = log[chatId][msgId];
+    let { go, skip, text: title } = log[chatId][msgId];
     const isGo = go.find((player) => player.id === currPlayer.id);
     const isSkip = skip.find((player) => player.id === currPlayer.id);
 
@@ -106,16 +110,12 @@ bot.on('callback_query', function (callbackQuery) {
     const id = '' + msgId + chatId;
     let { go: nGo, skip: nSkip } = log[chatId][msgId];
     if (newItem) {
-        const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text, chatId, msgId, id });
+        const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
         newRecord.save((err) => {
-            console.log(err);
             console.log('save')
         });
     } else {
-        HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip, text }, (err, item) => {
-            console.log(err);
-            console.log(JSON.stringify(item));
-        });
+        HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
     }
 
 
