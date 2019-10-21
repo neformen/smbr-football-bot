@@ -112,7 +112,7 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
     let { go: nGo, skip: nSkip } = log[chatId][msgId];
     if (newItem) {
         const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
-        newRecord.save((err) => {
+        await newRecord.save((err) => {
             console.log('save')
         });
     } else {
