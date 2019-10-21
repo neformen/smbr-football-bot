@@ -44,29 +44,31 @@ const devOptions: TelegramBot.ConstructorOptions = {
     polling: true
 };
 const url = process.env.APP_URL;
-const bot = new TelegramBot(TOKEN, process.env.PROD ? prodOptions : devOptions);
 
-if (process.env.PROD) {
-    bot.setWebHook(`${url}/bot${TOKEN}`);
-}
+let bot;
 
 HistoryItems.find({}, (err, historyItems) => {
     historyItems.forEach((historyItem) => {
         const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
         log[chatId] = {};
         log[chatId][msgId] = { go, skip, text };
-
-        console.log(historyItem.toObject());
     });
+
+    bot = new TelegramBot(TOKEN, process.env.PROD ? prodOptions : devOptions);
+
+    bot.onText(/\/game (.+)/, function (msg, match) {
+        const messageBody = match[1];
+        bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
+    });
+    
+    bot.on('callback_query', onCallbackQuery);
+
+    if (process.env.PROD) {
+        bot.setWebHook(`${url}/bot${TOKEN}`);
+    }
 });
 
-
-bot.onText(/\/game (.+)/, function (msg, match) {
-    const messageBody = match[1];
-    bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
-});
-
-bot.on('callback_query', function (callbackQuery) {
+function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): void {
     const decision: string = callbackQuery.data;
     let newItem: boolean = false;
     const msg: TelegramBot.Message = callbackQuery.message;
@@ -120,7 +122,7 @@ bot.on('callback_query', function (callbackQuery) {
 
 
     bot.editMessageText(text, opts);
-});
+}
 
 function generateMessage({ go, skip, text }: ILogGame): string {
     let resultMessage = `*${text}*\n\n`;
