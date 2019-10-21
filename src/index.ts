@@ -68,7 +68,7 @@ HistoryItems.find({}, (err, historyItems) => {
     }
 });
 
-function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): void {
+async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
     const decision: string = callbackQuery.data;
     let newItem: boolean = false;
     const msg: TelegramBot.Message = callbackQuery.message;
@@ -116,7 +116,7 @@ function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): void {
             console.log('save')
         });
     } else {
-        HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
+        await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
     }
 
 
