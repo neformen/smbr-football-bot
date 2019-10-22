@@ -108,7 +108,7 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
     Object.assign(log[chatId][msgId], { go, skip });
     log[chatId][msgId][decision].push(currPlayer);
     const text = generateMessage(log[chatId][msgId]);
-    const id = '' + msgId + chatId;
+    const id =`${msgId}${chatId}`;
     let { go: nGo, skip: nSkip } = log[chatId][msgId];
     if (newItem) {
         const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
@@ -124,21 +124,22 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
     bot.editMessageText(text, opts);
 }
 
+function generateUserLink({ first_name, last_name, id }: TelegramBot.User): string {
+    const fullName: string = last_name ? `${first_name} ${last_name}` : first_name;
+    return `[${fullName}](tg://user?id=${id})`;
+}
+
 function generateMessage({ go, skip, text }: ILogGame): string {
-    let resultMessage = `*${text}*\n\n`;
+    const messageLog: string[] = [`*${text}*\n`];
     if (go.length !== 0) {
-        resultMessage += 'Йдуть \n';
-        go.forEach(({ first_name, last_name, id }) => {
-            resultMessage += `[${first_name} ${last_name}](tg://user?id=${id})\n`;
-        });
+        messageLog.push('Йдуть');
+        messageLog.push(go.map(generateUserLink).join('\n'));
     }
 
     if (skip.length !== 0) {
-        resultMessage += 'Пропускають \n';
-        skip.forEach(({ first_name, last_name, id }) => {
-            resultMessage += `[${first_name} ${last_name}](tg://user?id=${id})\n`;
-        });
+        messageLog.push('Пропускають');
+        messageLog.push(skip.map(generateUserLink).join('\n'));
     }
 
-    return resultMessage;
+    return messageLog.join('\n');
 }
