@@ -11,8 +11,7 @@ if (!process.env.PROD) {
 const port: number = Number(process.env.PORT);
 const TOKEN = process.env.BOT_TOKEN;
 const devDBUrl = process.env.DB_URL;
-
-const log: ILog = {};
+const url = process.env.APP_URL;
 
 const inlineReplyOpts = {
     inline_keyboard: [
@@ -22,30 +21,27 @@ const inlineReplyOpts = {
         ]
     ]
 };
+const messageOpts: TelegramBot.SendMessageOptions = {
+    parse_mode: 'Markdown',
+    reply_markup: inlineReplyOpts
+};
+const prodOptions: TelegramBot.ConstructorOptions = {
+    webHook: {
+        port
+    }
+};
+const devOptions: TelegramBot.ConstructorOptions = {
+    polling: true
+};
+
+let bot;
+const log: ILog = {};
 
 mongoose.connect(devDBUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false
 });
-
-const messageOpts: TelegramBot.SendMessageOptions = {
-    parse_mode: 'Markdown',
-    reply_markup: inlineReplyOpts
-};
-
-const prodOptions: TelegramBot.ConstructorOptions = {
-    webHook: {
-        port
-    }
-};
-
-const devOptions: TelegramBot.ConstructorOptions = {
-    polling: true
-};
-const url = process.env.APP_URL;
-
-let bot;
 
 HistoryItems.find({}, (err, historyItems) => {
     historyItems.forEach((historyItem) => {
@@ -119,8 +115,6 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
         await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
     }
 
-
-
     bot.editMessageText(text, opts);
 }
 
@@ -132,12 +126,14 @@ function generateUserLink({ first_name, last_name, id }: TelegramBot.User): stri
 function generateMessage({ go, skip, text }: ILogGame): string {
     const messageLog: string[] = [`*${text}*\n`];
     if (go.length !== 0) {
-        messageLog.push('Йдуть');
+        const goCount = go.length;
+        messageLog.push(`Йдуть (${goCount}):`);
         messageLog.push(go.map(generateUserLink).join('\n'));
     }
 
     if (skip.length !== 0) {
-        messageLog.push('Пропускають');
+        const skipCount = skip.length;
+        messageLog.push(`Пропускають (${skipCount}):`);
         messageLog.push(skip.map(generateUserLink).join('\n'));
     }
 
