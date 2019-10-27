@@ -127,13 +127,13 @@ function generateMessage({ go, skip, text }: ILogGame): string {
     const messageLog: string[] = [`*${text}*\n`];
     if (go.length !== 0) {
         const goCount = go.length;
-        messageLog.push(`Йдуть (${goCount}):`);
+        messageLog.push(`Йдуть *(${goCount})* :`);
         messageLog.push(go.map(generateUserLink).join('\n'));
     }
 
     if (skip.length !== 0) {
         const skipCount = skip.length;
-        messageLog.push(`Пропускають (${skipCount}):`);
+        messageLog.push(`Пропускають *(${skipCount})* :`);
         messageLog.push(skip.map(generateUserLink).join('\n'));
     }
 
