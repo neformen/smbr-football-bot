@@ -52,16 +52,16 @@ HistoryItems.find({}, (err, historyItems) => {
 
     bot = new TelegramBot(TOKEN, process.env.PROD ? prodOptions : devOptions);
 
+    if (process.env.PROD) {
+        bot.setWebHook(`${url}/bot${TOKEN}`);
+    }
+
     bot.onText(/\/game (.+)/, function (msg, match) {
         const messageBody = match[1];
         bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
     });
     
     bot.on('callback_query', onCallbackQuery);
-
-    if (process.env.PROD) {
-        bot.setWebHook(`${url}/bot${TOKEN}`);
-    }
 });
 
 async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
