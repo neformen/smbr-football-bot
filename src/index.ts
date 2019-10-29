@@ -71,6 +71,7 @@ HistoryItems.find({}, (err, historyItems) => {
 async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
     const decision: string = callbackQuery.data;
     let newItem: boolean = false;
+    console.log(JSON.stringify(log));
     const msg: TelegramBot.Message = callbackQuery.message;
     const chatId: number = msg.chat.id;
     const msgId: number = msg.message_id
