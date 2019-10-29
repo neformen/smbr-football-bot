@@ -44,14 +44,15 @@ mongoose.connect(devDBUrl, {
 });
 
 HistoryItems.find({}, (err, historyItems) => {
-    console.log(1);
     historyItems.forEach((historyItem) => {
         const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
-        log[chatId] = {};
-        log[chatId][msgId] = { go, skip, text };
+        if (log[chatId] === undefined) {
+            log[chatId] = {};
+            log[chatId][msgId] = { go, skip, text };
+        } else {
+            log[chatId][msgId] = { go, skip, text };
+        }
     });
-    console.log(2);
-    console.log(JSON.stringify(log));
 
     bot = new TelegramBot(TOKEN, process.env.PROD ? prodOptions : devOptions);
 
@@ -68,8 +69,6 @@ HistoryItems.find({}, (err, historyItems) => {
 });
 
 async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
-    console.log(3);
-    console.log(JSON.stringify(log));
     const decision: string = callbackQuery.data;
     let newItem: boolean = false;
     const msg: TelegramBot.Message = callbackQuery.message;
