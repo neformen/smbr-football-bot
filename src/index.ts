@@ -155,5 +155,6 @@ async function getDBData() {
             log[chatId] = {};
             log[chatId][msgId] = { go, skip, text };
         });
+        console.log(Object.keys(log));
     });
 }
