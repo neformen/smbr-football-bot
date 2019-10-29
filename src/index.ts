@@ -69,6 +69,7 @@ HistoryItems.find({}, (err, historyItems) => {
 });
 
 async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
+    await getDBData();
     const decision: string = callbackQuery.data;
     let newItem: boolean = false;
     console.log(JSON.stringify(log));
@@ -143,4 +144,14 @@ function generateMessage({ go, skip, text }: ILogGame): string {
     }
 
     return messageLog.join('\n');
+}
+
+async function getDBData() {
+    await HistoryItems.find({}, (err, historyItems) => {
+        historyItems.forEach((historyItem) => {
+            const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
+            log[chatId] = {};
+            log[chatId][msgId] = { go, skip, text };
+        });
+    });
 }
