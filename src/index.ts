@@ -3,6 +3,7 @@ import * as mongoose from 'mongoose';
 import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
 import HistoryItems from './models/historyItem';
 import { config } from "dotenv";
+import historyItem from "./models/historyItem";
 
 if (!process.env.PROD) {
     config();
@@ -148,6 +149,7 @@ function generateMessage({ go, skip, text }: ILogGame): string {
 
 async function getDBData() {
     await HistoryItems.find({}, (err, historyItems) => {
+        console.log(historyItems.length);
         historyItems.forEach((historyItem) => {
             const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
             log[chatId] = {};
