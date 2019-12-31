@@ -1,6 +1,6 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import * as mongoose from 'mongoose';
-import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
+import { ILogGame, ILog, IlogDataBase, IUserCount } from "./interfaces/interfaces";
 import HistoryItems from './models/historyItem';
 import { config } from "dotenv";
 
@@ -63,6 +63,55 @@ HistoryItems.find({}, (err, historyItems) => {
     bot.onText(/\/game (.+)/, function (msg, match) {
         const messageBody = match[1];
         bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
+    });
+
+    bot.onText(/\/greeting (.+)/, function (msg, match) {
+        let messageBody = '';
+        const allRecords: Map<number, IUserCount> = new Map();
+        const logSmbr = log['-1001453557843'];
+        const trainings: ILogGame[] = [];
+
+        const allKeys = Object.keys(logSmbr);
+
+        for(let msgId of allKeys) {
+            let title = logSmbr[msgId].text;
+            if (title.includes('трен') && !title.includes('спаринг') && !title.includes('гра') && !title.includes('гру')) {
+                trainings.push(logSmbr[msgId]);
+            }
+            
+        }
+
+        trainings.forEach(training => {
+            training.go.forEach(user => {
+                if(allRecords.get(user.id)) {
+                    allRecords.get(user.id).count++
+                } else {
+                    allRecords.set(user.id, {
+                        count: 1,
+                        user
+                    });
+                }
+            })
+        });
+
+        const totalTrainingsCount = trainings.length;
+
+        messageBody += `Хлопці, всіх вітаю з Новим 2020 роком, маю передчуття, що це тільки початок, і всі наші головні перемоги ще попереду.
+Дуже тішусь, що нам вдалось вийти до IT-League One. І разом з цим, потенціал в нас набагато більший, є ще багато гравців, які ще не повністю відкрились.
+Маю надію, що цього сезону нам ще вийде поборотись за мастер лігу.
+        
+Ну і ви собі напевне думали, що я за вами не слідкував, але це не так, я все записував. І зробив для вас рейтинг по відвідуваним тренуванням.
+Загальна кількість тренувань: ${totalTrainingsCount}.\n\n`;
+
+        const sortedTrainings = Array.from(allRecords.values()).sort((a, b) => b.count - a.count);
+
+        sortedTrainings.forEach(({ user, count }, index) => {
+            messageBody += `${index + 1}. ${generateUserLink(user)}. ${generateUserAttendance(count, totalTrainingsCount)} \n`;
+        });
+
+        messageBody += `\nВсім гарного святкування і смачної горілки. Надіюсь всі випють соточку за нашу футбольну команду!`
+
+        bot.sendMessage(msg.chat.id, `${messageBody}`);
     });
     
     bot.on('callback_query', onCallbackQuery);
@@ -142,4 +191,9 @@ function generateMessage({ go, skip, text }: ILogGame): string {
     }
 
     return messageLog.join('\n');
+}
+
+function generateUserAttendance(userCount: number, total: number) {
+    const percentage = Number((userCount / total * 100).toFixed(2));
+    return `Кількість відвіданих тренувань: ${userCount} (${percentage}%)`;
 }

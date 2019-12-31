@@ -6,6 +6,11 @@ export interface ILogGame {
     text: string;
 }
 
+export interface IUserCount {
+    user: User,
+    count: number
+}
+
 export interface ILog {
     [key: string]: IlogChat;
 }
