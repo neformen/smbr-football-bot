@@ -27,15 +27,14 @@
   "homepage": "https://github.com/neformen/smbr-football-bot#readme",
   "dependencies": {
     "dotenv": "^8.2.0",
-    "mongoose": "^5.7.5",
-    "node-telegram-bot-api": "^0.30.0"
+    "mongoose": "^5.9.15",
+    "node-telegram-bot-api": "^0.50.0"
   },
   "devDependencies": {
-    "@types/dotenv": "^6.1.1",
-    "@types/mongoose": "^5.5.21",
-    "@types/node-telegram-bot-api": "^0.31.1",
-    "nodemon": "^1.19.3",
-    "ts-node": "^8.4.1",
-    "typescript": "^3.6.4"
+    "@types/mongoose": "^5.7.21",
+    "@types/node-telegram-bot-api": "^0.40.3",
+    "nodemon": "^2.0.4",
+    "ts-node": "^8.10.1",
+    "typescript": "^3.9.3"
   }
 }
