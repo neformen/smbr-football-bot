@@ -1,6 +1,6 @@
 import * as TelegramBot from "node-telegram-bot-api";
 import * as mongoose from 'mongoose';
-import { ILogGame, ILog, IlogDataBase, IUserCount } from "./interfaces/interfaces";
+import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
 import HistoryItems from './models/historyItem';
 import { config } from "dotenv";
 
@@ -9,11 +9,11 @@ if (!process.env.PROD) {
 }
 
 const port: number = Number(process.env.PORT);
-const TOKEN = process.env.BOT_TOKEN;
-const devDBUrl = process.env.DB_URL;
-const url = process.env.APP_URL;
+const TOKEN: string = process.env.BOT_TOKEN;
+const devDBUrl: string = process.env.DB_URL;
+const url: string = process.env.APP_URL;
 
-const inlineReplyOpts = {
+const inlineReplyOpts: TelegramBot.InlineKeyboardMarkup = {
     inline_keyboard: [
         [
             { text: 'Плюс, я з рєбятами', callback_data: 'go' },
@@ -34,8 +34,9 @@ const devOptions: TelegramBot.ConstructorOptions = {
     polling: true
 };
 
-let bot;
-const log: ILog = {};
+let bot: TelegramBot;
+const options: TelegramBot.ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
+const log: ILog = new Map();
 
 mongoose.connect(devDBUrl, {
     useNewUrlParser: true,
@@ -43,18 +44,19 @@ mongoose.connect(devDBUrl, {
     useFindAndModify: false
 });
 
-HistoryItems.find({}, (err, historyItems) => {
+HistoryItems.find({}, (_err, historyItems) => {
     historyItems.forEach((historyItem) => {
         const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
-        if (log[chatId] === undefined) {
-            log[chatId] = {};
-            log[chatId][msgId] = { go, skip, text };
-        } else {
-            log[chatId][msgId] = { go, skip, text };
+        const logRecord: ILogGame = { go, skip, text };
+
+        if (isUndefined(log.get(chatId))) {
+            log.set(chatId, new Map());
         }
+
+        log.get(chatId).set(msgId, logRecord);
     });
 
-    bot = new TelegramBot(TOKEN, process.env.PROD ? prodOptions : devOptions);
+    bot = new TelegramBot(TOKEN, options);
 
     if (process.env.PROD) {
         bot.setWebHook(`${url}/bot${TOKEN}`);
@@ -63,55 +65,6 @@ HistoryItems.find({}, (err, historyItems) => {
     bot.onText(/\/game (.+)/, function (msg, match) {
         const messageBody = match[1];
         bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
-    });
-
-    bot.onText(/\/greeting (.+)/, function (msg, match) {
-        let messageBody = '';
-        const allRecords: Map<number, IUserCount> = new Map();
-        const logSmbr = log['-1001453557843'];
-        const trainings: ILogGame[] = [];
-
-        const allKeys = Object.keys(logSmbr);
-
-        for(let msgId of allKeys) {
-            let title = logSmbr[msgId].text;
-            if (title.includes('трен') && !title.includes('спаринг') && !title.includes('гра') && !title.includes('гру')) {
-                trainings.push(logSmbr[msgId]);
-            }
-            
-        }
-
-        trainings.forEach(training => {
-            training.go.forEach(user => {
-                if(allRecords.get(user.id)) {
-                    allRecords.get(user.id).count++
-                } else {
-                    allRecords.set(user.id, {
-                        count: 1,
-                        user
-                    });
-                }
-            })
-        });
-
-        const totalTrainingsCount = trainings.length;
-
-        messageBody += `Хлопці, всіх вітаю з Новим 2020 роком, маю передчуття, що це тільки початок, і всі наші головні перемоги ще попереду.
-Дуже тішусь, що нам вдалось вийти до IT-League One. І разом з цим, потенціал в нас набагато більший, є ще багато гравців, які ще не повністю відкрились.
-Маю надію, що цього сезону нам ще вийде поборотись за мастер лігу.
-        
-Ну і ви собі напевне думали, що я за вами не слідкував, але це не так, я все записував. І зробив для вас рейтинг по відвідуваним тренуванням.
-Загальна кількість тренувань: ${totalTrainingsCount}.\n\n`;
-
-        const sortedTrainings = Array.from(allRecords.values()).sort((a, b) => b.count - a.count);
-
-        sortedTrainings.forEach(({ user, count }, index) => {
-            messageBody += `${index + 1}. ${generateUserLink(user)}. ${generateUserAttendance(count, totalTrainingsCount)} \n`;
-        });
-
-        messageBody += `\nВсім гарного святкування і смачної горілки. Надіюсь всі випють соточку за нашу футбольну команду!`
-
-        bot.sendMessage(msg.chat.id, `${messageBody}`);
     });
     
     bot.on('callback_query', onCallbackQuery);
@@ -131,22 +84,25 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
         parse_mode: 'Markdown'
     };
 
-    if (log[chatId] === undefined) {
-        log[chatId] = {};
+    if (isUndefined(log.get(chatId))) {
+        log.set(chatId, new Map());
         newItem = true;
     }
 
-    if (log[chatId][msgId] === undefined) {
-        log[chatId][msgId] = {
+    if (isUndefined(log.get(chatId).get(msgId))) {
+        let chatRecords = log.get(chatId);
+        let logRecord: ILogGame = {
             go: [],
             skip: [],
             text: msg.text
         };
+        chatRecords.set(msgId, logRecord);
         newItem = true;
     }
-    let { go, skip, text: title } = log[chatId][msgId];
-    const isGo = go.find((player) => player.id === currPlayer.id);
-    const isSkip = skip.find((player) => player.id === currPlayer.id);
+    const logRecord: ILogGame = log.get(chatId).get(msgId);
+    let { go, skip, text: title } = logRecord;
+    const isGo: TelegramBot.User = go.find((player) => player.id === currPlayer.id);
+    const isSkip: TelegramBot.User = skip.find((player) => player.id === currPlayer.id);
 
     if ((isGo && decision === 'go') || (isSkip && decision === 'skip')) {
         return;
@@ -154,11 +110,11 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
 
     go = go.filter(player => player.id !== currPlayer.id);
     skip = skip.filter(player => player.id !== currPlayer.id);
-    Object.assign(log[chatId][msgId], { go, skip });
-    log[chatId][msgId][decision].push(currPlayer);
-    const text = generateMessage(log[chatId][msgId]);
-    const id =`${msgId}${chatId}`;
-    let { go: nGo, skip: nSkip } = log[chatId][msgId];
+    Object.assign(logRecord, { go, skip });
+    logRecord[decision].push(currPlayer);
+    const text: string = generateMessage(logRecord);
+    const id: string =`${msgId}${chatId}`;
+    let { go: nGo, skip: nSkip } = logRecord;
     if (newItem) {
         const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
         await newRecord.save((err) => {
@@ -179,13 +135,13 @@ function generateUserLink({ first_name, last_name, id }: TelegramBot.User): stri
 function generateMessage({ go, skip, text }: ILogGame): string {
     const messageLog: string[] = [`*${text}*\n`];
     if (go.length !== 0) {
-        const goCount = go.length;
+        const goCount: number = go.length;
         messageLog.push(`Йдуть *(${goCount})* :`);
         messageLog.push(go.map(generateUserLink).join('\n'));
     }
 
     if (skip.length !== 0) {
-        const skipCount = skip.length;
+        const skipCount: number = skip.length;
         messageLog.push(`Пропускають *(${skipCount})* :`);
         messageLog.push(skip.map(generateUserLink).join('\n'));
     }
@@ -193,7 +149,6 @@ function generateMessage({ go, skip, text }: ILogGame): string {
     return messageLog.join('\n');
 }
 
-function generateUserAttendance(userCount: number, total: number) {
-    const percentage = Number((userCount / total * 100).toFixed(2));
-    return `Кількість відвіданих тренувань: ${userCount} (${percentage}%)`;
+function isUndefined(value: any): boolean {
+    return value === undefined || value === null;
 }

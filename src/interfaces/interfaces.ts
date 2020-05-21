@@ -6,18 +6,9 @@ export interface ILogGame {
     text: string;
 }
 
-export interface IUserCount {
-    user: User,
-    count: number
-}
+export type ILog = Map<number, IlogChat>;
 
-export interface ILog {
-    [key: string]: IlogChat;
-}
-
-export interface IlogChat {
-    [key: string]: ILogGame
-}
+export type IlogChat = Map<number, ILogGame>
 
 export interface IlogDataBase {
     go: User[];
