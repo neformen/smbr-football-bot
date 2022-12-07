@@ -34,6 +34,9 @@ const devOptions: TelegramBot.ConstructorOptions = {
     polling: true
 };
 
+var express = require('express');
+var app = express();
+
 let bot: TelegramBot;
 const options: TelegramBot.ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
 const log: ILog = new Map();
@@ -43,6 +46,7 @@ mongoose.connect(devDBUrl, {
     useUnifiedTopology: true,
     useFindAndModify: false
 }).then(async () => {
+    app.listen(process.env.PORT);
     await HistoryItems.find({}, (_err, historyItems) => {
         historyItems.forEach((historyItem) => {
             const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
@@ -152,3 +156,5 @@ function generateMessage({ go, skip, text }: ILogGame): string {
 function isUndefined(value: any): boolean {
     return value === undefined || value === null;
 }
+
+app.listen(process.env.PORT);
