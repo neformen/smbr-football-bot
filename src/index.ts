@@ -38,6 +38,8 @@ let bot: TelegramBot;
 const options: TelegramBot.ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
 const log: ILog = new Map();
 
+console.log(devDBUrl);
+
 mongoose.connect(devDBUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
