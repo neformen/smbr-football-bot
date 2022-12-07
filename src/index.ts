@@ -42,32 +42,32 @@ mongoose.connect(devDBUrl, {
     useNewUrlParser: true,
     useUnifiedTopology: true,
     useFindAndModify: false
-});
-
-HistoryItems.find({}, (_err, historyItems) => {
-    historyItems.forEach((historyItem) => {
-        const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
-        const logRecord: ILogGame = { go, skip, text };
-
-        if (isUndefined(log.get(chatId))) {
-            log.set(chatId, new Map());
-        }
-
-        log.get(chatId).set(msgId, logRecord);
-    });
-
-    bot = new TelegramBot(TOKEN, options);
-
-    if (process.env.PROD) {
-        bot.setWebHook(`${url}/bot${TOKEN}`);
-    }
-
-    bot.onText(/\/game (.+)/, function (msg, match) {
-        const messageBody = match[1];
-        bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
-    });
+}).then(() => {
+    HistoryItems.find({}, (_err, historyItems) => {
+        historyItems.forEach((historyItem) => {
+            const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
+            const logRecord: ILogGame = { go, skip, text };
     
-    bot.on('callback_query', onCallbackQuery);
+            if (isUndefined(log.get(chatId))) {
+                log.set(chatId, new Map());
+            }
+    
+            log.get(chatId).set(msgId, logRecord);
+        });
+    
+        bot = new TelegramBot(TOKEN, options);
+    
+        if (process.env.PROD) {
+            bot.setWebHook(`${url}/bot${TOKEN}`);
+        }
+    
+        bot.onText(/\/game (.+)/, function (msg, match) {
+            const messageBody = match[1];
+            bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
+        });
+        
+        bot.on('callback_query', onCallbackQuery);
+    });
 });
 
 async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
