@@ -4,7 +4,11 @@ import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
 import {HistoryItems} from './models/historyItem';
 import { config } from "dotenv";
 
-console.log('PROD', !process.env.PROD, process.env.PROD)
+console.log('PROD', !process.env.PROD, process.env.PROD);
+console.log('port', Number(process.env.PORT));
+console.log('TOKEN', Number(process.env.BOT_TOKEN));
+console.log('devDBUrl', Number(process.env.DB_URL));
+console.log('url', Number(process.env.APP_URL));
 
 if (!process.env.PROD) {
     console.log('load local env')
