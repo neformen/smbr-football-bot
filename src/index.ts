@@ -4,6 +4,8 @@ import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
 import {HistoryItems} from './models/historyItem';
 import { config } from "dotenv";
 
+console.log('PROD', !process.env.PROD, process.env.PROD)
+
 if (!process.env.PROD) {
     config();
 }
