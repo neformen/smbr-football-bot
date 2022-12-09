@@ -1,6 +1,10 @@
 {
     "compilerOptions": {
-        "outDir": "dist"
+        "allowSyntheticDefaultImports": true,
+        "outDir": "dist",
+        "target": "ES2018",
+        "module": "Node16",
+        "moduleResolution": "Node"
     },
     "include": ["./src/**/**.ts"]
 }

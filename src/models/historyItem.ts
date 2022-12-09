@@ -11,4 +11,4 @@ const HistoryItemSchema = new Schema({
     id: { type: String, required: true }
 });
 
-export default mongoose.model('HistoryItem', HistoryItemSchema);
+export const HistoryItems = mongoose.model('HistoryItem', HistoryItemSchema);

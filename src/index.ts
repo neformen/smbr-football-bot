@@ -1,7 +1,7 @@
-import * as TelegramBot from "node-telegram-bot-api";
+import TelegramBot from "node-telegram-bot-api";
 import * as mongoose from 'mongoose';
 import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
-import HistoryItems from './models/historyItem';
+import {HistoryItems} from './models/historyItem';
 import { config } from "dotenv";
 
 if (!process.env.PROD) {
@@ -32,46 +32,41 @@ const prodOptions: TelegramBot.ConstructorOptions = {
 };
 const devOptions: TelegramBot.ConstructorOptions = {
     polling: true
-};
-
-var express = require('express');
-var app = express();
+}
 
 let bot: TelegramBot;
 const options: TelegramBot.ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
 const log: ILog = new Map();
 
+mongoose.set('strictQuery', false);
 mongoose.connect(devDBUrl, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-    useFindAndModify: false
 }).then(async () => {
-    app.listen(process.env.PORT);
-    await HistoryItems.find({}, (_err, historyItems) => {
+    HistoryItems.find({}).then((historyItems) => {
         historyItems.forEach((historyItem) => {
             const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
             const logRecord: ILogGame = { go, skip, text };
-    
+
             if (isUndefined(log.get(chatId))) {
                 log.set(chatId, new Map());
             }
-    
+
             log.get(chatId).set(msgId, logRecord);
+
         });
-    
+
         bot = new TelegramBot(TOKEN, options);
-    
+
         if (process.env.PROD) {
             bot.setWebHook(`${url}/bot${TOKEN}`);
         }
-    
+
         bot.onText(/\/game (.+)/, function (msg, match) {
             const messageBody = match[1];
             bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
         });
-        
+
         bot.on('callback_query', onCallbackQuery);
-    });
+    })
 });
 
 async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
@@ -117,7 +112,7 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
     Object.assign(logRecord, { go, skip });
     logRecord[decision].push(currPlayer);
     const text: string = generateMessage(logRecord);
-    const id: string =`${msgId}${chatId}`;
+    const id: string = `${msgId}${chatId}`;
     let { go: nGo, skip: nSkip } = logRecord;
     if (newItem) {
         const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
@@ -156,5 +151,3 @@ function generateMessage({ go, skip, text }: ILogGame): string {
 function isUndefined(value: any): boolean {
     return value === undefined || value === null;
 }
-
-app.listen(process.env.PORT);
