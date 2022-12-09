@@ -58,6 +58,7 @@ mongoose.connect(devDBUrl, {
 
         if (process.env.PROD) {
             bot.setWebHook(`${url}/bot${TOKEN}`);
+            console.log(url);
         }
 
         bot.onText(/\/game (.+)/, function (msg, match) {
