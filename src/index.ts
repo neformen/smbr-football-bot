@@ -6,9 +6,9 @@ import { config } from "dotenv";
 
 console.log('PROD', !process.env.PROD, process.env.PROD);
 console.log('port', Number(process.env.PORT));
-console.log('TOKEN', Number(process.env.BOT_TOKEN));
-console.log('devDBUrl', Number(process.env.DB_URL));
-console.log('url', Number(process.env.APP_URL));
+console.log('TOKEN', process.env.BOT_TOKEN);
+console.log('devDBUrl', process.env.DB_URL);
+console.log('url', process.env.APP_URL);
 
 if (!process.env.PROD) {
     console.log('load local env')
@@ -21,9 +21,9 @@ const devDBUrl: string = process.env.DB_URL;
 const url: string = process.env.APP_URL;
 
 console.log('port', Number(process.env.PORT));
-console.log('TOKEN', Number(process.env.BOT_TOKEN));
-console.log('devDBUrl', Number(process.env.DB_URL));
-console.log('url', Number(process.env.APP_URL));
+console.log('TOKEN', process.env.BOT_TOKEN);
+console.log('devDBUrl', process.env.DB_URL);
+console.log('url', process.env.APP_URL);
 
 const inlineReplyOpts: TelegramBot.InlineKeyboardMarkup = {
     inline_keyboard: [
