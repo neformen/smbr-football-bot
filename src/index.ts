@@ -13,6 +13,11 @@ const TOKEN: string = process.env.BOT_TOKEN;
 const devDBUrl: string = process.env.DB_URL;
 const url: string = process.env.APP_URL;
 
+console.log('port', Number(process.env.PORT));
+console.log('TOKEN', Number(process.env.BOT_TOKEN));
+console.log('devDBUrl', Number(process.env.DB_URL));
+console.log('url', Number(process.env.APP_URL));
+
 const inlineReplyOpts: TelegramBot.InlineKeyboardMarkup = {
     inline_keyboard: [
         [
