@@ -7,6 +7,7 @@ import { config } from "dotenv";
 console.log('PROD', !process.env.PROD, process.env.PROD)
 
 if (!process.env.PROD) {
+    console.log('load local env')
     config();
 }
 
