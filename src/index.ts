@@ -1,135 +1,132 @@
-import TelegramBot from "node-telegram-bot-api";
+import TelegramBot, { InlineKeyboardMarkup, SendMessageOptions, ConstructorOptions, Message, CallbackQuery, User, EditMessageTextOptions } from "node-telegram-bot-api";
 import * as mongoose from 'mongoose';
-import { ILogGame, ILog, IlogDataBase } from "./interfaces/interfaces";
-import {HistoryItems} from './models/historyItem';
-import { config } from "dotenv";
+import { HistoryItems } from './models/historyItem';
+import { config } from 'dotenv';
+import { createPollMessage, isDefined } from './utils';
+import { Decision, GameRecord, GameMessage } from './interfaces';
 
-console.log('PROD', !process.env.PROD, process.env.PROD);
-console.log('port', Number(process.env.PORT));
-console.log('TOKEN', process.env.BOT_TOKEN);
-console.log('devDBUrl', process.env.DB_URL);
-console.log('url', process.env.APP_URL);
+export type Chat = Map<number, GameMessage>
 
-if (!process.env.PROD) {
-    console.log('load local env')
+if (process.env.PROD !== 'TRUE') {
     config();
 }
 
 const port: number = Number(process.env.PORT);
 const TOKEN: string = process.env.BOT_TOKEN;
-const devDBUrl: string = process.env.DB_URL;
+const databaseUrl: string = process.env.DB_URL;
 const url: string = process.env.APP_URL;
 
-console.log('port', Number(process.env.PORT));
-console.log('TOKEN', process.env.BOT_TOKEN);
-console.log('devDBUrl', process.env.DB_URL);
-console.log('url', process.env.APP_URL);
-
-const inlineReplyOpts: TelegramBot.InlineKeyboardMarkup = {
+const inlineReplyOpts: InlineKeyboardMarkup = {
     inline_keyboard: [
         [
-            { text: 'Плюс, я з рєбятами', callback_data: 'go' },
-            { text: 'Мінус, буду спати', callback_data: 'skip' }
+            { text: 'Плюс, я з рєбятами', callback_data: Decision.Go },
+            { text: 'Мінус, буду спати', callback_data: Decision.Skip }
         ]
     ]
 };
-const messageOpts: TelegramBot.SendMessageOptions = {
+const messageOpts: SendMessageOptions = {
     parse_mode: 'Markdown',
     reply_markup: inlineReplyOpts
 };
-const prodOptions: TelegramBot.ConstructorOptions = {
+const prodOptions: ConstructorOptions = {
     webHook: {
         port
     }
 };
-const devOptions: TelegramBot.ConstructorOptions = {
+const devOptions: ConstructorOptions = {
     polling: true
 }
 
 let bot: TelegramBot;
-const options: TelegramBot.ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
-const log: ILog = new Map();
+const options: ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
+const chats: Map<number, Chat> = new Map();
 
 mongoose.set('strictQuery', false);
-mongoose.connect(devDBUrl, {
-}).then(async () => {
+mongoose.connect(databaseUrl, {
+}).then(() => {
     HistoryItems.find({}).then((historyItems) => {
         historyItems.forEach((historyItem) => {
-            const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
-            const logRecord: ILogGame = { go, skip, text };
+            console.log(1);
+            const { go, chatId, text, skip, msgId } = <GameRecord>historyItem.toObject();
+            const message: GameMessage = { go, skip, text };
 
-            if (isUndefined(log.get(chatId))) {
-                log.set(chatId, new Map());
+            if (!isDefined(chats.get(chatId))) {
+                chats.set(chatId, new Map());
             }
 
-            log.get(chatId).set(msgId, logRecord);
+            chats.get(chatId).set(msgId, message);
 
         });
+        console.log(1);
 
         bot = new TelegramBot(TOKEN, options);
 
         if (process.env.PROD) {
             bot.setWebHook(`${url}/bot${TOKEN}`);
-            console.log(url);
         }
 
-        bot.onText(/\/game (.+)/, function (msg, match) {
-            const messageBody = match[1];
-            bot.sendMessage(msg.chat.id, `*${messageBody}*`, messageOpts);
+        bot.onText(/\/game (.+)/, (msg: Message, match: RegExpExecArray) => {
+            console.log(2);
+            const messageText: string = match[1];
+            bot.sendMessage(msg.chat.id, `*${messageText}*`, messageOpts);
         });
 
         bot.on('callback_query', onCallbackQuery);
     })
 });
 
-async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promise<void> {
-    const decision: string = callbackQuery.data;
-    let newItem: boolean = false;
-    const msg: TelegramBot.Message = callbackQuery.message;
+async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
+    const decision: Decision = callbackQuery.data as Decision;
+    let isNewChat: boolean = false;
+    const msg: Message = callbackQuery.message;
     const chatId: number = msg.chat.id;
     const msgId: number = msg.message_id
-    const currPlayer: TelegramBot.User = callbackQuery.from;
-    const opts: TelegramBot.EditMessageTextOptions = {
+    const currPlayer: User = callbackQuery.from;
+    const opts: EditMessageTextOptions = {
         chat_id: chatId,
         message_id: msgId,
         reply_markup: inlineReplyOpts,
         parse_mode: 'Markdown'
     };
 
-    if (isUndefined(log.get(chatId))) {
-        log.set(chatId, new Map());
-        newItem = true;
+    if (!isDefined(chats.get(chatId))) {
+        chats.set(chatId, new Map());
+        isNewChat = true;
     }
 
-    if (isUndefined(log.get(chatId).get(msgId))) {
-        let chatRecords = log.get(chatId);
-        let logRecord: ILogGame = {
+    if (!isDefined(chats.get(chatId).get(msgId))) {
+        const chat: Chat = chats.get(chatId);
+        let message: GameMessage = {
             go: [],
             skip: [],
             text: msg.text
         };
-        chatRecords.set(msgId, logRecord);
-        newItem = true;
+        chat.set(msgId, message);
+        isNewChat = true;
     }
-    const logRecord: ILogGame = log.get(chatId).get(msgId);
-    let { go, skip, text: title } = logRecord;
-    const isGo: TelegramBot.User = go.find((player) => player.id === currPlayer.id);
-    const isSkip: TelegramBot.User = skip.find((player) => player.id === currPlayer.id);
+    let message: GameMessage = chats.get(chatId).get(msgId);
+    let { go, skip, text: title } = message;
+    const isGo: User = go.find((player) => player.id === currPlayer.id);
+    const isSkip: User = skip.find((player) => player.id === currPlayer.id);
 
-    if ((isGo && decision === 'go') || (isSkip && decision === 'skip')) {
+    if ((isGo && decision === Decision.Go) || (isSkip && decision === Decision.Skip)) {
         return;
     }
 
     go = go.filter(player => player.id !== currPlayer.id);
     skip = skip.filter(player => player.id !== currPlayer.id);
-    Object.assign(logRecord, { go, skip });
-    logRecord[decision].push(currPlayer);
-    const text: string = generateMessage(logRecord);
+    message = {
+        ...message,
+        go,
+        skip
+    };
+    message[decision].push(currPlayer);
+    const text: string = createPollMessage(message);
     const id: string = `${msgId}${chatId}`;
-    let { go: nGo, skip: nSkip } = logRecord;
-    if (newItem) {
-        const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
-        await newRecord.save((err) => {
+    let { go: nGo, skip: nSkip } = message;
+    if (isNewChat) {
+        const newChat: mongoose.Document = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
+        await newChat.save((err) => {
             console.log('save')
         });
     } else {
@@ -137,30 +134,4 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
     }
 
     bot.editMessageText(text, opts);
-}
-
-function generateUserLink({ first_name, last_name, id }: TelegramBot.User): string {
-    const fullName: string = last_name ? `${first_name} ${last_name}` : first_name;
-    return `[${fullName}](tg://user?id=${id})`;
-}
-
-function generateMessage({ go, skip, text }: ILogGame): string {
-    const messageLog: string[] = [`*${text}*\n`];
-    if (go.length !== 0) {
-        const goCount: number = go.length;
-        messageLog.push(`Йдуть *(${goCount})* :`);
-        messageLog.push(go.map(generateUserLink).join('\n'));
-    }
-
-    if (skip.length !== 0) {
-        const skipCount: number = skip.length;
-        messageLog.push(`Пропускають *(${skipCount})* :`);
-        messageLog.push(skip.map(generateUserLink).join('\n'));
-    }
-
-    return messageLog.join('\n');
-}
-
-function isUndefined(value: any): boolean {
-    return value === undefined || value === null;
 }
