@@ -2,7 +2,7 @@ import TelegramBot, { InlineKeyboardMarkup, SendMessageOptions, ConstructorOptio
 import * as mongoose from 'mongoose';
 import { HistoryItems } from './models/historyItem';
 import { config } from 'dotenv';
-import { createPollMessage, isDefined } from './utils';
+import { createGameMessageText, isDefined } from './utils';
 import { Decision, GameRecord, GameMessage } from './interfaces';
 
 export type Chat = Map<number, GameMessage>
@@ -121,7 +121,7 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
         skip
     };
     message[decision].push(currPlayer);
-    const text: string = createPollMessage(message);
+    const text: string = createGameMessageText(message);
     const id: string = `${msgId}${chatId}`;
     let { go: nGo, skip: nSkip } = message;
     if (isNewChat) {
