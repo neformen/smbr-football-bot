@@ -46,7 +46,6 @@ mongoose.connect(databaseUrl, {
 }).then(() => {
     HistoryItems.find({}).then((historyItems) => {
         historyItems.forEach((historyItem) => {
-            console.log(1);
             const { go, chatId, text, skip, msgId } = <GameRecord>historyItem.toObject();
             const message: GameMessage = { go, skip, text };
 
@@ -57,7 +56,6 @@ mongoose.connect(databaseUrl, {
             chats.get(chatId).set(msgId, message);
 
         });
-        console.log(1);
 
         bot = new TelegramBot(TOKEN, options);
 
@@ -66,7 +64,6 @@ mongoose.connect(databaseUrl, {
         }
 
         bot.onText(/\/game (.+)/, (msg: Message, match: RegExpExecArray) => {
-            console.log(2);
             const messageText: string = match[1];
             bot.sendMessage(msg.chat.id, `*${messageText}*`, messageOpts);
         });
