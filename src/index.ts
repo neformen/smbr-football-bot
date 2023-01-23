@@ -63,9 +63,9 @@ mongoose.connect(databaseUrl, {
             bot.setWebHook(`${url}/bot${TOKEN}`);
         }
 
-        bot.onText(/\/game (.+)/, (msg: Message, match: RegExpExecArray) => {
+        bot.onText(/\/game (.+)/, async (msg: Message, match: RegExpExecArray) => {
             const messageText: string = match[1];
-            bot.sendMessage(msg.chat.id, `*${messageText}*`, messageOpts);
+            await bot.sendMessage(msg.chat.id, `*${messageText}*`, messageOpts);
         });
 
         bot.on('callback_query', onCallbackQuery);
@@ -123,12 +123,22 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
     let { go: nGo, skip: nSkip } = message;
     if (isNewChat) {
         const newChat: mongoose.Document = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
-        await newChat.save((err) => {
-            console.log('save')
+        await newChat.save((err: NativeError) => {
+            if (err) {
+                console.log('error happens(create):', err);
+            } else {
+                console.log('save');
+            }
         });
     } else {
-        await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
+        await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip }, (err: NativeError) => {
+            if (err) {
+                console.log('error happens(update):', err);
+            } else {
+                console.log('save');
+            }
+        });
     }
 
-    bot.editMessageText(text, opts);
+    await bot.editMessageText(text, opts);
 }
