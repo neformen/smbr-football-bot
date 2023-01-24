@@ -5,7 +5,7 @@ import { config } from 'dotenv';
 import { createGameMessageText, isDefined } from './utils';
 import { Decision, GameRecord, GameMessage } from './interfaces';
 
-export type Chat = Map<number, GameMessage>
+type Chat = Map<number, GameMessage>
 
 if (process.env.PROD !== 'TRUE') {
     config();
