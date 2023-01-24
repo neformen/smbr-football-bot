@@ -120,6 +120,7 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
     message[decision].push(currPlayer);
     const text: string = createGameMessageText(message);
     const id: string = `${msgId}${chatId}`;
+    await bot.editMessageText(text, opts);
     let { go: nGo, skip: nSkip } = message;
     if (isNewChat) {
         const newChat: mongoose.Document = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
@@ -139,6 +140,4 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
             }
         });
     }
-
-    await bot.editMessageText(text, opts);
 }
