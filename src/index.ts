@@ -42,34 +42,33 @@ const options: ConstructorOptions = process.env.PROD ? prodOptions : devOptions;
 const chats: Map<number, Chat> = new Map();
 
 mongoose.set('strictQuery', false);
-mongoose.connect(databaseUrl, {
-}).then(() => {
-    HistoryItems.find({}).then((historyItems) => {
-        historyItems.forEach((historyItem) => {
-            const { go, chatId, text, skip, msgId } = <GameRecord>historyItem.toObject();
-            const message: GameMessage = { go, skip, text };
+mongoose.connect(databaseUrl).then(async () => {
+    const historyItems = await HistoryItems.find({});
 
-            if (!isDefined(chats.get(chatId))) {
-                chats.set(chatId, new Map());
-            }
+    historyItems.forEach((historyItem) => {
+        const { go, chatId, text, skip, msgId } = <GameRecord>historyItem.toObject();
+        const message: GameMessage = { go, skip, text };
 
-            chats.get(chatId).set(msgId, message);
-
-        });
-
-        bot = new TelegramBot(TOKEN, options);
-
-        if (process.env.PROD) {
-            bot.setWebHook(`${url}/bot${TOKEN}`);
+        if (!isDefined(chats.get(chatId))) {
+            chats.set(chatId, new Map());
         }
 
-        bot.onText(/\/game (.+)/, async (msg: Message, match: RegExpExecArray) => {
-            const messageText: string = match[1];
-            await bot.sendMessage(msg.chat.id, `*${messageText}*`, messageOpts);
-        });
+        chats.get(chatId).set(msgId, message);
 
-        bot.on('callback_query', onCallbackQuery);
-    })
+    });
+
+    bot = new TelegramBot(TOKEN, options);
+
+    if (process.env.PROD) {
+        await bot.setWebHook(`${url}/bot${TOKEN}`);
+    }
+
+    bot.onText(/\/game (.+)/, async (msg: Message, match: RegExpExecArray) => {
+        const messageText: string = match[1];
+        await bot.sendMessage(msg.chat.id, `*${messageText}*`, messageOpts);
+    });
+
+    bot.on('callback_query', onCallbackQuery);
 });
 
 async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
@@ -103,11 +102,10 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
     }
     let message: GameMessage = chats.get(chatId).get(msgId);
     let { go, skip, text: title } = message;
-    const isGo: User = go.find((player) => player.id === currPlayer.id);
-    const isSkip: User = skip.find((player) => player.id === currPlayer.id);
+    const isGo: boolean = go.some((player) => player.id === currPlayer.id);
+    const isSkip: boolean = skip.some((player) => player.id === currPlayer.id);
 
     if ((isGo && decision === Decision.Go) || (isSkip && decision === Decision.Skip)) {
-        await bot.editMessageText(msg.text, opts);
         return;
     }
 
@@ -119,6 +117,7 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
         skip
     };
     message[decision].push(currPlayer);
+    chats.get(chatId).set(msgId, message);
     const text: string = createGameMessageText(message);
     const id: string = `${msgId}${chatId}`;
     await bot.editMessageText(text, opts);
