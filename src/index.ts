@@ -107,6 +107,7 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
     const isSkip: User = skip.find((player) => player.id === currPlayer.id);
 
     if ((isGo && decision === Decision.Go) || (isSkip && decision === Decision.Skip)) {
+        await bot.editMessageText(msg.text, opts);
         return;
     }
 
