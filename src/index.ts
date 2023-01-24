@@ -124,20 +124,18 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
     let { go: nGo, skip: nSkip } = message;
     if (isNewChat) {
         const newChat: mongoose.Document = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
-        await newChat.save((err: NativeError) => {
-            if (err) {
-                console.log('error happens(create):', err);
-            } else {
-                console.log('save');
-            }
-        });
+        try {
+            await newChat.save();
+            console.log('save');
+        } catch (err: unknown) {
+            console.log('error happens(create):', err);
+        }
     } else {
-        await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip }, (err: NativeError) => {
-            if (err) {
-                console.log('error happens(update):', err);
-            } else {
-                console.log('save');
-            }
-        });
+        try {
+            HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
+            console.log('findOneAndUpdate');
+        } catch (err: unknown) {
+            console.log('error happens(update):', err);
+        }
     }
 }
