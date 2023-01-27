@@ -132,7 +132,7 @@ async function onCallbackQuery(callbackQuery: CallbackQuery): Promise<void> {
         }
     } else {
         try {
-            HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
+            await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
             console.log('findOneAndUpdate');
         } catch (err: unknown) {
             console.log('error happens(update):', err);
