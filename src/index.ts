@@ -59,7 +59,7 @@ mongoose.connect(devDBUrl, {
         bot = new TelegramBot(TOKEN, options);
     
         if (process.env.PROD) {
-            bot.setWebHook(`${url}:${port}/bot${TOKEN}`);
+            bot.setWebHook(`${url}/bot${TOKEN}`);
         }
     
         bot.onText(/\/game (.+)/, function (msg, match) {
