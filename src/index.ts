@@ -17,7 +17,8 @@ const inlineReplyOpts: TelegramBot.InlineKeyboardMarkup = {
     inline_keyboard: [
         [
             { text: 'Плюс, я з рєбятами', callback_data: 'go' },
-            { text: 'Мінус, буду спати', callback_data: 'skip' }
+            { text: 'Мінус, буду спати', callback_data: 'skip' },
+            { text: '50/50', callback_data: 'unconfirmed' }
         ]
     ]
 };
@@ -49,8 +50,8 @@ mongoose.connect(devDBUrl, {
     app.listen(process.env.PORT);
     await HistoryItems.find({}, (_err, historyItems) => {
         historyItems.forEach((historyItem) => {
-            const { go, chatId, text, skip, msgId } = <IlogDataBase>historyItem.toObject();
-            const logRecord: ILogGame = { go, skip, text };
+            const { go, chatId, text, skip, msgId, unconfirmed } = <IlogDataBase>historyItem.toObject();
+            const logRecord: ILogGame = { go, skip, unconfirmed, text };
     
             if (isUndefined(log.get(chatId))) {
                 log.set(chatId, new Map());
@@ -98,34 +99,37 @@ async function onCallbackQuery(callbackQuery: TelegramBot.CallbackQuery): Promis
         let logRecord: ILogGame = {
             go: [],
             skip: [],
+            unconfirmed: [],
             text: msg.text
         };
         chatRecords.set(msgId, logRecord);
         newItem = true;
     }
     const logRecord: ILogGame = log.get(chatId).get(msgId);
-    let { go, skip, text: title } = logRecord;
+    let { go, skip, unconfirmed, text: title } = logRecord;
     const isGo: TelegramBot.User = go.find((player) => player.id === currPlayer.id);
     const isSkip: TelegramBot.User = skip.find((player) => player.id === currPlayer.id);
+    const isUnconfirmed: TelegramBot.User = unconfirmed.find((player) => player.id === currPlayer.id);
 
-    if ((isGo && decision === 'go') || (isSkip && decision === 'skip')) {
+    if ((isGo && decision === 'go') || (isSkip && decision === 'skip') || (isUnconfirmed && decision === 'unconfirmed')) {
         return;
     }
 
     go = go.filter(player => player.id !== currPlayer.id);
     skip = skip.filter(player => player.id !== currPlayer.id);
-    Object.assign(logRecord, { go, skip });
+    unconfirmed = unconfirmed.filter(player => player.id !== currPlayer.id);
+    Object.assign(logRecord, { go, skip, unconfirmed });
     logRecord[decision].push(currPlayer);
     const text: string = generateMessage(logRecord);
     const id: string =`${msgId}${chatId}`;
-    let { go: nGo, skip: nSkip } = logRecord;
+    let { go: nGo, skip: nSkip, unconfirmed: nUnconfirmed } = logRecord;
     if (newItem) {
-        const newRecord = new HistoryItems({ go: nGo, skip: nSkip, text: title, chatId, msgId, id });
+        const newRecord = new HistoryItems({ go: nGo, skip: nSkip, unconfirmed: nUnconfirmed, text: title, chatId, msgId, id });
         await newRecord.save((err) => {
             console.log('save')
         });
     } else {
-        await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip });
+        await HistoryItems.findOneAndUpdate({ id }, { go: nGo, skip: nSkip, unconfirmed: nUnconfirmed });
     }
 
     bot.editMessageText(text, opts);
@@ -136,7 +140,7 @@ function generateUserLink({ first_name, last_name, id }: TelegramBot.User): stri
     return `[${fullName}](tg://user?id=${id})`;
 }
 
-function generateMessage({ go, skip, text }: ILogGame): string {
+function generateMessage({ go, skip, unconfirmed, text }: ILogGame): string {
     const messageLog: string[] = [`*${text}*\n`];
     if (go.length !== 0) {
         const goCount: number = go.length;
@@ -148,6 +152,12 @@ function generateMessage({ go, skip, text }: ILogGame): string {
         const skipCount: number = skip.length;
         messageLog.push(`Пропускають *(${skipCount})* :`);
         messageLog.push(skip.map(generateUserLink).join('\n'));
+    }
+
+    if (unconfirmed.length !== 0) {
+        const unconfirmedCount: number = unconfirmed.length;
+        messageLog.push(`Пізніше скажу *(${unconfirmedCount})* :`);
+        messageLog.push(unconfirmed.map(generateUserLink).join('\n'));
     }
 
     return messageLog.join('\n');
